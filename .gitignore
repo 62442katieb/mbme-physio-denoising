@@ -1,0 +1,4 @@
+**.acq
+example_data/*
+**.ipynb_checkpoints**
+**.DS_Store
