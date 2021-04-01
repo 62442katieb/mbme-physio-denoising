@@ -1,4 +1,8 @@
 # Removing MR-related noise from concurrently collected electrophysiological recordings
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/62442katieb/mbme-physio-denoising/binder-live?filepath=notebooks%2Fdenoising_ecg.ipynb)
+
+
 Collecting physiological data during fMRI experiments can improve fMRI data cleaning and 
 contribute to our understanding of psychophysiological processes; however, these recordings are 
 frequently fraught with artifacts from the MRI pulse sequence. Here, we look at manufacturer 
@@ -14,7 +18,7 @@ using IIR notch filters centered at slice collection and TR frequencies.
 
 `requirements.txt` specifies Python packages (and versions thereof) used in the creation and application of these filters.
 
-### Examples
+### Notebooks
 Contains interactive Jupyter notebooks (`denoising_ecg.ipynb` and `denoising_eda.ipynb`) that apply the filters to electrocardiogram and electrodermal
 activity data, respectively, collected during multiband, single-echo and multi-echo EPI sequences, plots raw and cleaned data, 
 and compares ferquency spectra across the filtering strategies using magnitude squared coherence.
