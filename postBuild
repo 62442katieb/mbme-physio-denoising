@@ -1,0 +1,2 @@
+wget -q -O data/raw/mbse-raw_ecg.csv "https://osf.io/t5x7e/download"
+wget -q -O data/raw/mbme-raw_ecg.csv "https://osf.io/4j52a/download"
