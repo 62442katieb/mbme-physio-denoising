@@ -39,7 +39,13 @@ args = parser.parse_args()
 
 
 data_fname = args.in_file
-data = br.read_file(data_fname)
+ext = data_fname.split('.')[-1]
+if 'acq' in ext:
+    data = br.read_file(data_fname)
+if 'csv' in ext:
+    data = pd.read_csv(data_fname)
+if 'tsv' in ext:
+    data = pd.read_csv(date_fname, sep='\t')
 basename = data_fname.split('/')[-1][:-4]
 out_dir = args.out_dir
 
