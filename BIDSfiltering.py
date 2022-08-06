@@ -141,7 +141,8 @@ for file in physio_jsons[:5]:
             out_path = os.path.join(out_path, 
                                     f'ses-{sesh}',
                                     'func')
-            os.makedirs(out_path)
+            if not os.path.exists(out_path):
+                os.makedirs(out_path)
             if run:
                 out_path = os.path.join(out_path, 
                                         f'sub-{subj}_ses-{sesh}_task-{task}_run-{run}_desc-filtered_physio')
@@ -152,14 +153,16 @@ for file in physio_jsons[:5]:
                                 f'sub-{subj}', 
                                 f'ses-{sesh}',
                                 'func')
-            os.makedirs(out_path)
+            if not os.path.exists(out_path):    
+                os.makedirs(out_path)
             out_path = os.path.join(out_path, 
                                     f'sub-{subj}_task-{task}_run-{run}_desc-filtered_physio')
         else:
             out_path = os.path.join(deriv_dir, 
                                     f'sub-{subj}', 
                                     'func')
-            os.makedirs(out_path)
+            if not os.path.exists(out_path):
+                os.makedirs(out_path)
             out_path = os.path.join(out_path, 
                                     f'sub-{subj}_task-{task}_desc-filtered_physio')
         
@@ -204,9 +207,10 @@ for file in physio_jsons[:5]:
         lim = 6 * fs
         downsample = 10
         fig = plot_signal_fourier(time=dat['seconds'], 
-                    data=timeseries['cardiac'], 
+                    data=dat['cardiac'], 
                     downsample=downsample, 
-                    limits=(0,lim * downsample), 
+                    low_lim=0,
+                    high_lim=int(lim * downsample), 
                     fft=fft_ecg, 
                     freq=freq, 
                     lim_fmax=flimit, 
