@@ -3,14 +3,14 @@ import json
 import json
 import gzip
 import shutil
-import errno
+#import errno
 import os
 import argparse
 
 import pandas as pd
-import numpy as np
+#import numpy as np
 
-import heartpy as hp
+#import heartpy as hp
 from systole.plots import plot_raw
 from systole.detection import interpolate_clipping, ecg_peaks
 from systole.utils import heart_rate
@@ -21,12 +21,12 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ephys_filtering import *
+from filtering import comb_band_stop, fourier_freq, plot_signal_fourier
 
 pd.options.mode.chained_assignment = None
 
 parser = argparse.ArgumentParser(description='Accept BIDS directory, specify # slices if slice timing isn\' specified in BOLD sidecar.')
-parser.add_argument('dset', type=str, 
+parser.add_argument('dset', type=str,
                     help='Valid BIDS dataset containing physiological data.')
 parser.add_argument('--slices', 
                     type=int, 
@@ -34,8 +34,10 @@ parser.add_argument('--slices',
                             If multiple BOLD sequences were used with different numbers of slices, this option is invalid, please
                             make sure slice timing is specified in the json sidecar for each BOLD sequence.
                     ''')
-parser.add_argument('--mb', type=int, 
+parser.add_argument('--mb', type=int, default=1,
                     help='Multiband factor of fMRI scan sequence (if single band, --mb=1).')
+parser.add_argument('--biopac', action='store_true',
+                    help='Run only BIOPAC-recommended filtering at single-band slice collection frequency.')
 parser.add_argument('--verbose', action='store_true', 
                     help='Print information as the cleaning script runs.')
 
@@ -43,7 +45,32 @@ args = parser.parse_args()
 
 bids_dir = args.dset
 deriv_dir = os.path.join(bids_dir, 'derivatives', 'combed_physio')
+if not os.path.exists(deriv_dir):
+    os.makedirs(deriv_dir)
 dset = bids.BIDSLayout(bids_dir)
+
+
+
+dataset_description = {
+    "Name": "Combed Physio Data",
+    "BIDSVersion": "1.4.0",
+    "DatasetType": "derivative",
+    "GeneratedBy": [
+        {
+            "Name": "physio_comb",
+            "Version": "0.2.0"
+        }
+    ],
+}
+
+if len(dset.description["DatasetDOI"]) > 0:
+    dataset_description["SourceDatasets"] = [
+            {
+                "DOI": dset.description['DatasetDOI'],
+            }
+        ]
+else:
+    pass
 
 physio_jsons = dset.get(suffix='physio', extension='json')
 slices = args.slices
@@ -83,17 +110,16 @@ for file in physio_jsons[:5]:
         task = file.entities['task']
         subj = file.entities['subject']
         dtype = file.entities['datatype']
-        
-        # not all datasets have data from multiple sessions
-        if 'session' in bold_json.entities.keys():
-            sesh = bold_json.entities['session']
+
+        if 'session' in file.entities.keys():
+            sesh = file.entities['session']
         else:
             sesh = None
-        # not all tasks have multiple runs
-        if 'run' in file.entities['run']:
+        if 'run' in file.entities.keys():
             run = file.entities['run']
         else:
             run = None
+        
         bold_json = dset.get(task=task, 
                                 subject=subj, 
                                 session=sesh,
@@ -101,22 +127,53 @@ for file in physio_jsons[:5]:
                                 run=run, 
                                 suffix='bold',
                                 extension='json')
+        assert len(bold_json) == 1, f"Looking for one associated BOLD file, found {len(bold_json)}."
+        bold_json = bold_json[0]
+
+        # not all datasets have data from multiple sessions
+        if 'session' in bold_json.entities.keys():
+            sesh = bold_json.entities['session']
+        else:
+            sesh = None
+        # not all tasks have multiple runs
+        if 'run' in file.entities.keys():
+            run = file.entities['run']
+        else:
+            run = None
+        
+                               
         physio_dict = file.get_dict()
         assert len(bold_json) == 1, f"Found {len(bold_json)} associated {dtype} jsons, expected 1."
         bold_dict = bold_json[0].get_dict()
         
 
-        
+        out_path = os.path.join(deriv_dir, 
+                                f'sub-{subj}')
+        if sesh:
+            out_path = os.path.join(out_path, 
+                                    f'ses-{sesh}',
+                                    'func')
+            os.makedirs(out_path)
+            if run:
+                out_path = os.path.join(out_path, 
+                                        f'sub-{subj}_ses-{sesh}_task-{task}_run-{run}_desc-filtered_physio')
+        else:
+            pass
+        if run:
             out_path = os.path.join(deriv_dir, 
                                 f'sub-{subj}', 
                                 f'ses-{sesh}',
-                                'func', 
-                                f'sub-{subj}_')
+                                'func')
+            os.makedirs(out_path)
+            out_path = os.path.join(out_path, 
+                                    f'sub-{subj}_task-{task}_run-{run}_desc-filtered_physio')
         else:
             out_path = os.path.join(deriv_dir, 
                                     f'sub-{subj}', 
-                                    'func', 
-                                    f'sub-{subj}_')
+                                    'func')
+            os.makedirs(out_path)
+            out_path = os.path.join(out_path, 
+                                    f'sub-{subj}_task-{task}_desc-filtered_physio')
         
         notches = {}
         # params needed for physio denoising
@@ -148,6 +205,9 @@ for file in physio_jsons[:5]:
         dat['seconds'] = dat.index / fs
         # and then run the denoising filters 
         notches['slices'] = slices / mb / tr
+
+        if args.biopac:
+            notches = {'slices': slices/tr}
         
         # compute power spectrum of raw signal
         fft_ecg, _, freq, flimit = fourier_freq(dat['cardiac'], 1/fs, 60)
@@ -167,7 +227,11 @@ for file in physio_jsons[:5]:
                     slice_peaks=None,
                     title='Raw cardiac', 
                     save=True)
-        fig.savefig(os.path.join(deriv_dir, ''))
+        fig.savefig(f'{out_path}.png', dpi=400, bbox_inches='tight')
+
+        # let the filtering begin
+        for notch in notches.keys():
+            filtered = comb_band_stop(notch, dat['cardiac'], Q, fs)
 
     else:
         pass
