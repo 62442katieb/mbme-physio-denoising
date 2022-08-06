@@ -174,7 +174,7 @@ for file in physio_jsons[:5]:
             mb = bold_dict['MultibandAccelerationFactor']
         else:
             mb = 1
-        if 'echo' in bold_json[0].entities.keys():
+        if 'echo' in bold_json.entities.keys():
             notches['tr'] = 1/tr
             tr_filter = True
         else:
