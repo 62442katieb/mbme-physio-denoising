@@ -129,22 +129,10 @@ for file in physio_jsons[:5]:
                                 extension='json')
         assert len(bold_json) == 1, f"Looking for one associated BOLD file, found {len(bold_json)}."
         bold_json = bold_json[0]
-
-        # not all datasets have data from multiple sessions
-        if 'session' in bold_json.entities.keys():
-            sesh = bold_json.entities['session']
-        else:
-            sesh = None
-        # not all tasks have multiple runs
-        if 'run' in file.entities.keys():
-            run = file.entities['run']
-        else:
-            run = None
-        
                                
         physio_dict = file.get_dict()
-        assert len(bold_json) == 1, f"Found {len(bold_json)} associated {dtype} jsons, expected 1."
-        bold_dict = bold_json[0].get_dict()
+        
+        bold_dict = bold_json.get_dict()
         
 
         out_path = os.path.join(deriv_dir, 
