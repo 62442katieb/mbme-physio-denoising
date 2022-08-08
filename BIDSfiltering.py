@@ -194,7 +194,7 @@ for file in physio_jsons[:5]:
 
         # I think all the functions calc nyquist themselves
         # nyquist = fs / 2
-        Q = 100 
+        Q = 5 
         print(f'tr: {tr}\nmb: {mb}\nslices: {slices}\nfs: {fs}')
         
         # load the data
@@ -226,9 +226,12 @@ for file in physio_jsons[:5]:
             fig.savefig(os.path.join(out_path, f'{basename}desc-raw{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
 
             # let the filtering begin
+            #print(notches)
             filtered = comb_band_stop(notches, dat[column], Q, fs)
             dat[f'{column}_filtered'] = filtered
-
+            
+            # fourier transform filtered data
+            fft_ecg, _, freq, flimit = fourier_freq(dat[f'{column}_filtered'], 1/fs, 60)
             fig = plot_signal_fourier(time=dat['seconds'],
                         data=dat[f'{column}_filtered'], 
                         downsample=downsample, 
