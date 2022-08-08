@@ -65,12 +65,14 @@ def plot_signal_fourier(time, data, downsample, samples, fft, freq, lim_fmax,
 
     limit = int(samples / downsample)
 
-    sns.lineplot(time_dec[0: limit], 
-                 data_dec[0: limit], 
-                 linewidth=1, ax=ax1) #array, top subplot
-    sns.lineplot(freq[:lim_fmax], 
-                 fft.real[:lim_fmax], 
-                 ax=ax2, linewidth=1)#bottom subplot
+    time_domain = [time_dec[0: limit], 
+                 data_dec[0: limit]]
+    freq_domain = [freq[:lim_fmax], 
+                 fft.real[:lim_fmax]]
+    sns.lineplot(time_domain, 
+                 linewidth=1, ax=ax1) #array, left subplot
+    sns.lineplot(freq_domain, 
+                 ax=ax2, linewidth=1)#right subplot
     if annotate:
         ax2.plot(freq[peaks][:50], fft.real[peaks][:50], "^", ms=5)
         ax2.plot(freq[slice_peaks][:4], fft.real[slice_peaks][:4], "o", ms=7)
@@ -84,7 +86,7 @@ def plot_signal_fourier(time, data, downsample, samples, fft, freq, lim_fmax,
     ax2.set_ylabel('Power')
     ax1.set_title(title, pad=40)
     ax2.set_title('{0} Frequencies'.format(title),pad=40)
-    plt.show()
+    #plt.show()
     #if save:
     #    
     #    fig.savefig('../figures/{title}.svg'.format(title=title))

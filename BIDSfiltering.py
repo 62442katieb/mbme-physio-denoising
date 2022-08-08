@@ -220,6 +220,23 @@ for file in physio_jsons[:5]:
 
         # let the filtering begin
         filtered = comb_band_stop(notches, dat['cardiac'], Q, fs)
+        dat['cardiac_filtered'] = filtered
+
+        fig = plot_signal_fourier(time=dat['seconds'],
+                    data=dat['cardiac_filtered'], 
+                    downsample=downsample, 
+                    samples=samples, 
+                    fft=fft_ecg, 
+                    freq=freq, 
+                    lim_fmax=flimit, 
+                    annotate=False,
+                    peaks=None,
+                    slice_peaks=None,
+                    title='Filtered cardiac', 
+                    save=True)
+        fig.savefig(os.path.join(out_path, f'{basename}desc-filtered_physio.png'), dpi=400, bbox_inches='tight')
+
+        dat.to_csv(os.path.join(out_path, f'{basename}desc-filtered_physio.tsv'), sep='\t')
 
     else:
         pass
