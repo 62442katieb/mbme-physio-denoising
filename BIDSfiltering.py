@@ -144,8 +144,7 @@ for file in physio_jsons[:5]:
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
             if run:
-                out_path = os.path.join(out_path, 
-                                        f'sub-{subj}_ses-{sesh}_task-{task}_run-{run}_desc-filtered_physio')
+                basename = f'sub-{subj}_ses-{sesh}_task-{task}_run-{run}_'
         else:
             pass
         if run:
@@ -155,16 +154,15 @@ for file in physio_jsons[:5]:
                                 'func')
             if not os.path.exists(out_path):    
                 os.makedirs(out_path)
-            out_path = os.path.join(out_path, 
-                                    f'sub-{subj}_task-{task}_run-{run}_desc-filtered_physio')
+            basename =  f'sub-{subj}_task-{task}_run-{run}_'
         else:
             out_path = os.path.join(deriv_dir, 
                                     f'sub-{subj}', 
                                     'func')
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
-            out_path = os.path.join(out_path, 
-                                    f'sub-{subj}_task-{task}_desc-filtered_physio')
+            basename =  f'sub-{subj}_task-{task}_'
+        
         
         notches = {}
         # params needed for physio denoising
@@ -204,13 +202,12 @@ for file in physio_jsons[:5]:
         fft_ecg, _, freq, flimit = fourier_freq(dat['cardiac'], 1/fs, 60)
         # first, plot the raw signal and its power spectrum
         # how many samples in six seconds?
-        lim = 6 * fs
+        samples = int(6 * fs)
         downsample = 10
         fig = plot_signal_fourier(time=dat['seconds'], 
                     data=dat['cardiac'], 
                     downsample=downsample, 
-                    low_lim=0,
-                    high_lim=int(lim * downsample), 
+                    samples=samples, 
                     fft=fft_ecg, 
                     freq=freq, 
                     lim_fmax=flimit, 
@@ -219,11 +216,10 @@ for file in physio_jsons[:5]:
                     slice_peaks=None,
                     title='Raw cardiac', 
                     save=True)
-        fig.savefig(f'{out_path}.png', dpi=400, bbox_inches='tight')
+        fig.savefig(os.path.join(out_path, f'{basename}desc-raw_physio.png'), dpi=400, bbox_inches='tight')
 
         # let the filtering begin
-        for notch in notches.keys():
-            filtered = comb_band_stop(notch, dat['cardiac'], Q, fs)
+        filtered = comb_band_stop(notches, dat['cardiac'], Q, fs)
 
     else:
         pass
