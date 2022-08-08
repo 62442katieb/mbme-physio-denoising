@@ -146,12 +146,13 @@ for file in physio_jsons[:5]:
                 os.makedirs(out_path)
             if run:
                 basename = f'sub-{subj}_ses-{sesh}_task-{task}_run-{run}_'
+            else:
+                basename = f'sub-{subj}_ses-{sesh}_task-{task}_'
         else:
             pass
         if run:
             out_path = os.path.join(deriv_dir, 
                                 f'sub-{subj}', 
-                                f'ses-{sesh}',
                                 'func')
             if not os.path.exists(out_path):    
                 os.makedirs(out_path)
@@ -222,7 +223,7 @@ for file in physio_jsons[:5]:
                         slice_peaks=None,
                         title=f'Raw {column}', 
                         save=True)
-            fig.savefig(os.path.join(out_path, f'{basename}desc-raw{column.capitalize}_physio.png'), dpi=400, bbox_inches='tight')
+            fig.savefig(os.path.join(out_path, f'{basename}desc-raw{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
 
             # let the filtering begin
             filtered = comb_band_stop(notches, dat[column], Q, fs)
@@ -240,7 +241,7 @@ for file in physio_jsons[:5]:
                         slice_peaks=None,
                         title=f'Filtered {column}', 
                         save=True)
-            fig.savefig(os.path.join(out_path, f'{basename}desc-filtered{column.capitalize}_physio.png'), dpi=400, bbox_inches='tight')
+            fig.savefig(os.path.join(out_path, f'{basename}desc-filtered{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
 
         dat.to_csv(os.path.join(out_path, f'{basename}desc-filtered_physio.tsv'), sep='\t')
 
