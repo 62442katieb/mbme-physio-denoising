@@ -63,6 +63,10 @@ dataset_description = {
     ],
 }
 
+import json
+with open(os.path.join(deriv_dir, 'dataset_description.json'), 'w') as fp:
+    json.dump(dataset_description, fp)
+
 if len(dset.description["DatasetDOI"]) > 0:
     dataset_description["SourceDatasets"] = [
             {
