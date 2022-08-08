@@ -79,13 +79,6 @@ with open(os.path.join(deriv_dir, 'dataset_description.json'), 'w') as fp:
 physio_jsons = dset.get(suffix='physio', extension='json')
 slices = args.slices
 
-if args.biopac == True:
-    mb = 1
-elif args.mb is not None:
-    mb = args.mb
-else:
-    mb = 1
-
 # check json for cardiac column
 # extract sampling frequency if cardiac is present
 # and then unzip the accompanying physio tsv.gz 
@@ -179,12 +172,18 @@ for file in physio_jsons[:5]:
             pass
         else:
             slices = len(bold_dict['SliceTiming'])
-        if 'MultibandAccelerationFactor' in bold_dict.keys():
-            mb = bold_dict['MultibandAccelerationFactor']
-        else:
+        if args.biopac == True: # ignore data's mb factor and filter like biopac
             mb = 1
-        if 'echo' in bold_json.entities.keys():
-            notches['tr'] = 1/tr
+        elif 'MultibandAccelerationFactor' in bold_dict.keys():
+            mb = bold_dict['MultibandAccelerationFactor']
+        elif args.mb:
+            mb = args.mb
+        else: # mb factor not specified, assume single band
+            mb = 1
+        if args.biopac: # ignore possibility of multiple echoes and filter like biopac
+            tr_filter = False
+        elif 'echo' in bold_json.entities.keys():
+            notches['tr'] = 1 / tr
             tr_filter = True
         else:
             tr_filter = False
@@ -192,7 +191,8 @@ for file in physio_jsons[:5]:
 
         fs = physio_dict['SamplingFrequency']
 
-        nyquist = fs/2
+        # I think all the functions calc nyquist themselves
+        # nyquist = fs / 2
         Q = 100 
         print(f'tr: {tr}\nmb: {mb}\nslices: {slices}\nfs: {fs}')
         
@@ -202,9 +202,6 @@ for file in physio_jsons[:5]:
         dat['seconds'] = dat.index / fs
         # and then run the denoising filters 
         notches['slices'] = slices / mb / tr
-
-        if args.biopac:
-            notches = {'slices': slices/tr}
         
         for column in intersection:
             # compute power spectrum of raw signal
