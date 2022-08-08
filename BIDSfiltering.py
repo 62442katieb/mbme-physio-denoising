@@ -49,8 +49,6 @@ if not os.path.exists(deriv_dir):
     os.makedirs(deriv_dir)
 dset = bids.BIDSLayout(bids_dir)
 
-
-
 dataset_description = {
     "Name": "Combed Physio Data",
     "BIDSVersion": "1.4.0",
@@ -63,9 +61,8 @@ dataset_description = {
     ],
 }
 
-import json
-with open(os.path.join(deriv_dir, 'dataset_description.json'), 'w') as fp:
-    json.dump(dataset_description, fp)
+CANDIDATES = ['cardiac', 'ecg', 'ekg', # are there any ecg signals? note: doesn't distinguish between ppg and ecg
+              'electrodermal', 'electrodermal activity', 'eda', 'scr']
 
 if len(dset.description["DatasetDOI"]) > 0:
     dataset_description["SourceDatasets"] = [
@@ -76,10 +73,15 @@ if len(dset.description["DatasetDOI"]) > 0:
 else:
     pass
 
+with open(os.path.join(deriv_dir, 'dataset_description.json'), 'w') as fp:
+    json.dump(dataset_description, fp)
+
 physio_jsons = dset.get(suffix='physio', extension='json')
 slices = args.slices
 
-if args.mb:
+if args.biopac == True:
+    mb = 1
+elif args.mb is not None:
     mb = args.mb
 else:
     mb = 1
@@ -93,7 +95,10 @@ for file in physio_jsons[:5]:
     path = file.path
     with open(path) as json_file:
         data = json.load(json_file)
-    if 'cardiac' in data['Columns']:
+    # need to replace this if statement with something that covers all ecg and eda options
+    check_cols = any(item in CANDIDATES for item in data['Columns'])
+    if check_cols:
+        intersection = [value for value in CANDIDATES if value in data['Columns']]
         data_file = file.get_associations()
         assert len(data_file) == 1, f"Found {len(data_file)} physio files instead of the expected 1."
         data_file = data_file[0].path
@@ -137,7 +142,6 @@ for file in physio_jsons[:5]:
         physio_dict = file.get_dict()
         
         bold_dict = bold_json.get_dict()
-        
 
         out_path = os.path.join(deriv_dir, 
                                 f'sub-{subj}')
@@ -202,43 +206,44 @@ for file in physio_jsons[:5]:
         if args.biopac:
             notches = {'slices': slices/tr}
         
-        # compute power spectrum of raw signal
-        fft_ecg, _, freq, flimit = fourier_freq(dat['cardiac'], 1/fs, 60)
-        # first, plot the raw signal and its power spectrum
-        # how many samples in six seconds?
-        samples = int(6 * fs)
-        downsample = 10
-        fig = plot_signal_fourier(time=dat['seconds'], 
-                    data=dat['cardiac'], 
-                    downsample=downsample, 
-                    samples=samples, 
-                    fft=fft_ecg, 
-                    freq=freq, 
-                    lim_fmax=flimit, 
-                    annotate=False,
-                    peaks=None,
-                    slice_peaks=None,
-                    title='Raw cardiac', 
-                    save=True)
-        fig.savefig(os.path.join(out_path, f'{basename}desc-raw_physio.png'), dpi=400, bbox_inches='tight')
+        for column in intersection:
+            # compute power spectrum of raw signal
+            fft_ecg, _, freq, flimit = fourier_freq(dat[column], 1/fs, 60)
+            # first, plot the raw signal and its power spectrum
+            # how many samples in six seconds?
+            samples = int(6 * fs)
+            downsample = 10
+            fig = plot_signal_fourier(time=dat['seconds'], 
+                        data=dat[column], 
+                        downsample=downsample, 
+                        samples=samples, 
+                        fft=fft_ecg, 
+                        freq=freq, 
+                        lim_fmax=flimit, 
+                        annotate=False,
+                        peaks=None,
+                        slice_peaks=None,
+                        title=f'Raw {column}', 
+                        save=True)
+            fig.savefig(os.path.join(out_path, f'{basename}desc-raw{column.capitalize}_physio.png'), dpi=400, bbox_inches='tight')
 
-        # let the filtering begin
-        filtered = comb_band_stop(notches, dat['cardiac'], Q, fs)
-        dat['cardiac_filtered'] = filtered
+            # let the filtering begin
+            filtered = comb_band_stop(notches, dat[column], Q, fs)
+            dat[f'{column}_filtered'] = filtered
 
-        fig = plot_signal_fourier(time=dat['seconds'],
-                    data=dat['cardiac_filtered'], 
-                    downsample=downsample, 
-                    samples=samples, 
-                    fft=fft_ecg, 
-                    freq=freq, 
-                    lim_fmax=flimit, 
-                    annotate=False,
-                    peaks=None,
-                    slice_peaks=None,
-                    title='Filtered cardiac', 
-                    save=True)
-        fig.savefig(os.path.join(out_path, f'{basename}desc-filtered_physio.png'), dpi=400, bbox_inches='tight')
+            fig = plot_signal_fourier(time=dat['seconds'],
+                        data=dat[f'{column}_filtered'], 
+                        downsample=downsample, 
+                        samples=samples, 
+                        fft=fft_ecg, 
+                        freq=freq, 
+                        lim_fmax=flimit, 
+                        annotate=False,
+                        peaks=None,
+                        slice_peaks=None,
+                        title=f'Filtered {column}', 
+                        save=True)
+            fig.savefig(os.path.join(out_path, f'{basename}desc-filtered{column.capitalize}_physio.png'), dpi=400, bbox_inches='tight')
 
         dat.to_csv(os.path.join(out_path, f'{basename}desc-filtered_physio.tsv'), sep='\t')
 
