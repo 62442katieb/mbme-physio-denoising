@@ -35,16 +35,11 @@ def butter_highpass_filter(data, cutoff, fs, order=5):
 
 def comb_band_stop(notches, data, Q, fs):
     nyquist = fs / 2
-    filtered = data.copy()
     for notch in notches:
-        max_harmonic = int(nyquist / notches[notch])
-        #print('Cleaning', notch, '@', notches[notch])
-        for i in range(1, max_harmonic):
-            #print(notches[notch] * i)
-            f0 = notches[notch] * i
-            w0 = f0 / nyquist
-            b,a = signal.iirnotch(w0, Q)
-            filtered = signal.filtfilt(b, a, filtered)
+        f0 = notches[notch]
+        w0 = f0 / nyquist
+        b,a = signal.iircomb(f0, Q, ftype='notch', fs=fs)
+        filtered = signal.filtfilt(b, a, data)
     return filtered
 
 def fourier_freq(timeseries, d, fmax):
@@ -65,13 +60,15 @@ def plot_signal_fourier(time, data, downsample, samples, fft, freq, lim_fmax,
 
     limit = int(samples / downsample)
 
-    time_domain = [time_dec[0: limit], 
-                 data_dec[0: limit]]
-    freq_domain = [freq[:lim_fmax], 
-                 fft.real[:lim_fmax]]
-    sns.lineplot(time_domain, 
+    time_domain = pd.DataFrame()
+    time_domain['x'] = time_dec[0: limit]
+    time_domain['y'] = data_dec[0: limit]
+    freq_domain = pd.DataFrame()
+    freq_domain['x'] = freq[:lim_fmax]
+    freq_domain['y'] = fft.real[:lim_fmax]
+    sns.lineplot(x='x', y='y', data=time_domain, 
                  linewidth=1, ax=ax1) #array, left subplot
-    sns.lineplot(freq_domain, 
+    sns.lineplot(x='x', y='y', data=freq_domain, 
                  ax=ax2, linewidth=1)#right subplot
     if annotate:
         ax2.plot(freq[peaks][:50], fft.real[peaks][:50], "^", ms=5)
@@ -85,7 +82,7 @@ def plot_signal_fourier(time, data, downsample, samples, fft, freq, lim_fmax,
     ax2.ticklabel_format(axis='y', style='sci', scilimits=(-1,1))
     ax2.set_ylabel('Power')
     ax1.set_title(title, pad=40)
-    ax2.set_title('{0} Frequencies'.format(title),pad=40)
+    ax2.set_title('{0} frequencies'.format(title),pad=40)
     #plt.show()
     #if save:
     #    

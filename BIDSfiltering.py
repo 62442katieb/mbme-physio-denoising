@@ -194,7 +194,10 @@ for file in physio_jsons[:5]:
 
         # I think all the functions calc nyquist themselves
         # nyquist = fs / 2
-        Q = 5 
+        Q = 10 
+
+        # fuuuuuuuuck this is going to have to approzimate the comb 
+        # so that fs is divisible by f0 ( = slices / mb / tr)
         print(f'tr: {tr}\nmb: {mb}\nslices: {slices}\nfs: {fs}')
         
         # load the data
