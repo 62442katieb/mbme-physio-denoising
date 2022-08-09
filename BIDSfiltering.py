@@ -5,6 +5,7 @@ import gzip
 import shutil
 #import errno
 import os
+import gc
 import argparse
 
 import pandas as pd
@@ -38,6 +39,8 @@ parser.add_argument('--mb', type=int, default=1,
                     help='Multiband factor of fMRI scan sequence (if single band, --mb=1).')
 parser.add_argument('--biopac', action='store_true',
                     help='Run only BIOPAC-recommended filtering at single-band slice collection frequency.')
+parser.add_argument('--progress', action='store_true',
+                    help='Display progress bar (note: requires enligten).')
 parser.add_argument('--verbose', action='store_true', 
                     help='Print information as the cleaning script runs.')
 
@@ -84,7 +87,7 @@ slices = args.slices
 # and then unzip the accompanying physio tsv.gz 
 # and then load the physio.tsv (maybe as a separate step)
 physio_files = []
-for file in physio_jsons[:5]:
+for file in physio_jsons:
     path = file.path
     with open(path) as json_file:
         data = json.load(json_file)
@@ -103,10 +106,14 @@ for file in physio_jsons[:5]:
                 with gzip.open(data_file, 'rb') as f_in:
                     with open(data_tsv, 'wb') as f_out:
                         shutil.copyfileobj(f_in, f_out)
+                del f_out
+                del f_in
+            gc.collect()
         elif 'tsv' in data_file[:-3]:
             data_tsv = data_file
         else:
             raise FileNotFoundError
+        gc.collect()
 
         # save entities as variables to pull associated BOLD meta-data
         task = file.entities['task']
@@ -194,11 +201,11 @@ for file in physio_jsons[:5]:
 
         # I think all the functions calc nyquist themselves
         # nyquist = fs / 2
-        Q = 10 
+        Q = 10
 
         # fuuuuuuuuck this is going to have to approzimate the comb 
         # so that fs is divisible by f0 ( = slices / mb / tr)
-        print(f'tr: {tr}\nmb: {mb}\nslices: {slices}\nfs: {fs}')
+        #print(f'tr: {tr}\nmb: {mb}\nslices: {slices}\nfs: {fs}')
         
         # load the data
         dat = pd.read_csv(data_tsv, sep='\t', header=0)
@@ -227,7 +234,7 @@ for file in physio_jsons[:5]:
                         title=f'Raw {column}', 
                         save=True)
             fig.savefig(os.path.join(out_path, f'{basename}desc-raw{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
-
+            plt.clf()
             # let the filtering begin
             #print(notches)
             filtered = comb_band_stop(notches, dat[column], Q, fs)
@@ -248,8 +255,9 @@ for file in physio_jsons[:5]:
                         title=f'Filtered {column}', 
                         save=True)
             fig.savefig(os.path.join(out_path, f'{basename}desc-filtered{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
-
+            plt.clf()
         dat.to_csv(os.path.join(out_path, f'{basename}desc-filtered_physio.tsv'), sep='\t')
-
+        del dat
+        gc.collect()
     else:
         pass
