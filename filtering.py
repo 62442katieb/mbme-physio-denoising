@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 
 pd.options.mode.chained_assignment = None
 
+sns.set_context('paper', font_scale=3)
+
+pal = sns.crayon_palette(['Gray', 'Razzmatazz', 'Tropical Rain Forest'])
+sns.set_palette(pal)
+
 def consecutive(data, stepsize=0.000501):
     return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
 
@@ -83,7 +88,7 @@ def plot_signal_fourier(time, data, downsample, samples, fft, freq, lim_fmax,
     ax2.set_ylabel('Power')
     ax1.set_title(title, pad=40)
     ax2.set_title('{0} frequencies'.format(title),pad=40)
-    #plt.show()
+    plt.close()
     #if save:
     #    
     #    fig.savefig('../figures/{title}.svg'.format(title=title))
