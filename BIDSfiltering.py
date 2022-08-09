@@ -98,22 +98,6 @@ for file in physio_jsons:
         data_file = file.get_associations()
         assert len(data_file) == 1, f"Found {len(data_file)} physio files instead of the expected 1."
         data_file = data_file[0].path
-        if 'gz' in data_file[-2:]:
-            data_tsv = data_file[:-3]
-            if os.path.exists(data_tsv):
-                pass
-            else:
-                with gzip.open(data_file, 'rb') as f_in:
-                    with open(data_tsv, 'wb') as f_out:
-                        shutil.copyfileobj(f_in, f_out)
-                del f_out
-                del f_in
-            gc.collect()
-        elif 'tsv' in data_file[:-3]:
-            data_tsv = data_file
-        else:
-            raise FileNotFoundError
-        gc.collect()
 
         # save entities as variables to pull associated BOLD meta-data
         task = file.entities['task']
@@ -208,7 +192,7 @@ for file in physio_jsons:
         #print(f'tr: {tr}\nmb: {mb}\nslices: {slices}\nfs: {fs}')
         
         # load the data
-        dat = pd.read_csv(data_tsv, sep='\t', header=0)
+        dat = pd.read_table(data_file,)
         dat.columns = physio_dict['Columns']
         dat['seconds'] = dat.index / fs
         # and then run the denoising filters 
