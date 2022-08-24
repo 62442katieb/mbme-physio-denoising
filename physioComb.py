@@ -84,7 +84,6 @@ slices = args.slices
 
 # check json for cardiac column
 # extract sampling frequency if cardiac is present
-# and then unzip the accompanying physio tsv.gz 
 # and then load the physio.tsv (maybe as a separate step)
 physio_files = []
 for file in physio_jsons:
@@ -99,6 +98,7 @@ for file in physio_jsons:
         assert len(data_file) == 1, f"Found {len(data_file)} physio files instead of the expected 1."
         data_file = data_file[0].path
 
+        print(data_file)
         # save entities as variables to pull associated BOLD meta-data
         task = file.entities['task']
         subj = file.entities['subject']
@@ -187,7 +187,7 @@ for file in physio_jsons:
         # nyquist = fs / 2
         Q = 10
 
-        # fuuuuuuuuck this is going to have to approzimate the comb 
+        # this is going to have to approzimate the comb 
         # so that fs is divisible by f0 ( = slices / mb / tr)
         #print(f'tr: {tr}\nmb: {mb}\nslices: {slices}\nfs: {fs}')
         
