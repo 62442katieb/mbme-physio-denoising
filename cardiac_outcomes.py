@@ -8,7 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from os.path import join, exists
-from scipy.stats import kurtosis, wilcoxon, ttest_rel
+#from scipy.stats import kurtosis, wilcoxon, ttest_rel
 sns.set_context('talk')
 
 # these are the command line imports
@@ -47,6 +47,7 @@ for file in files:
     filename = file.entities[filename]
     subject = file.entities[subject]
     task = file.entities[task]
+    fs = file.get_metadata()['SamplingFrequency']
     try:
         run = file.entities[run]
     except:
