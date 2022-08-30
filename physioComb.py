@@ -48,7 +48,7 @@ parser.add_argument('--verbose', action='store_true',
 args = parser.parse_args()
 
 bids_dir = args.dset
-deriv_dir = os.path.join(bids_dir, 'derivatives', 'combed_physio')
+deriv_dir = os.path.join(bids_dir, 'derivatives', 'PhysioComb')
 if not os.path.exists(deriv_dir):
     os.makedirs(deriv_dir)
 dset = bids.BIDSLayout(bids_dir)
@@ -165,7 +165,8 @@ for file in physio_jsons:
         # params needed for physio denoising
         tr = bold_dict['RepetitionTime']
         if len(bold_dict['SliceTiming']) < 1:
-            pass
+            if args.slices is None:
+                raise ValueError("SliceTiming not found in BOLD sidecar, please provide using --slices")
         else:
             slices = len(bold_dict['SliceTiming'])
         if args.biopac == True: # ignore data's mb factor and filter like biopac
@@ -251,7 +252,7 @@ for file in physio_jsons:
             'SamplingFrequency': fs,
             'Columns': list(dat.columns),
             'Note': f'''Infinite Impulse Response comb notch filters were applied to raw data to generate `_filtered` data, 
-                        with the following notch frequencies: {notches}'''
+                        with the following notch frequencies: {notches}. Slices {slices} / MB factor {mb} / TR {tr}'''
         }
         out_json_path = os.path.join(out_path, f'{basename}desc-filtered_physio.json')
         with open(out_json_path, 'w') as fp:
