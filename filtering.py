@@ -49,7 +49,7 @@ def comb_band_stop(notches, data, Q, fs):
                 max_harmonic = int(nyquist / f0)
                 for i in np.arange(1, max_harmonic):
                     
-                    f0 = notch * i
+                    f0 = notches[notch] * i
                     w0 = f0 / nyquist
                     b,a = signal.iirnotch(w0, Q, fs=fs)
                     filtered = signal.filtfilt(b, a, filtered)

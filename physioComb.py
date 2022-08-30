@@ -1,8 +1,7 @@
 import bids
 import json
-import json
-import gzip
-import shutil
+#import gzip
+#import shutil
 #import errno
 import os
 import gc
@@ -16,10 +15,10 @@ from systole.plots import plot_raw
 from systole.detection import interpolate_clipping, ecg_peaks
 from systole.utils import heart_rate
 
-import scipy.signal as signal
-import numpy as np
+#import scipy.signal as signal
+#import numpy as np
 import pandas as pd
-import seaborn as sns
+#import seaborn as sns
 import matplotlib.pyplot as plt
 
 from filtering import comb_band_stop, fourier_freq, plot_signal_fourier
@@ -41,6 +40,8 @@ parser.add_argument('--biopac', action='store_true',
                     help='Run only BIOPAC-recommended filtering at single-band slice collection frequency.')
 parser.add_argument('--progress', action='store_true',
                     help='Display progress bar (note: requires enligten).')
+parser.add_argument('--multicomb', action='store_true',
+                    help='Run multiple comb notch filtering strategies and save all outputs.')
 parser.add_argument('--verbose', action='store_true', 
                     help='Print information as the cleaning script runs.')
 
@@ -94,9 +95,12 @@ for file in physio_jsons:
     check_cols = any(item in CANDIDATES for item in data['Columns'])
     if check_cols:
         intersection = [value for value in CANDIDATES if value in data['Columns']]
-        data_file = file.get_associations()
-        assert len(data_file) == 1, f"Found {len(data_file)} physio files instead of the expected 1."
-        data_file = data_file[0].path
+        physio_file = file.get_associations()
+        assert len(physio_file) == 1, f"Found {len(physio_file)} physio files instead of the expected 1."
+        data_file = physio_file[0].path
+        fs = physio_file[0].get_metadata()['SamplingFrequency']
+
+        
 
         print(data_file)
         # save entities as variables to pull associated BOLD meta-data
@@ -240,6 +244,17 @@ for file in physio_jsons:
                         save=True)
             fig.savefig(os.path.join(out_path, f'{basename}desc-filtered{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
             plt.clf()
+        out_json = {
+            'Description': 'raw and filtered electrophysiological measures (i.e., cardiac and skin conductance).',
+            'Sources': [file, bold_json],
+            'RawSources': data_file,
+            'Columns': list(dat.columns),
+            'Note': f'''Infinite Impulse Response comb notch filters were applied to raw data to generate `_filtered` data, 
+                        with the following notch frequencies: {notches}'''
+        }
+        out_json_path = os.path.join(out_path, f'{basename}desc-filtered_physio.json')
+        with open(out_json_path, 'w') as fp:
+            json.dump(out_json, fp)
         dat.to_csv(os.path.join(out_path, f'{basename}desc-filtered_physio.tsv'), sep='\t')
         del dat
         gc.collect()
