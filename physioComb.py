@@ -246,7 +246,7 @@ for file in physio_jsons:
             plt.clf()
         out_json = {
             'Description': 'raw and filtered electrophysiological measures (i.e., cardiac and skin conductance).',
-            'Sources': [file, bold_json.path],
+            'Sources': [path, bold_json.path],
             'RawSources': data_file,
             'SamplingFrequency': fs,
             'Columns': list(dat.columns),
