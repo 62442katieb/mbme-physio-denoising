@@ -36,7 +36,7 @@ subjects = layout.get_subjects()
 sessions = layout.get_session()
 
 # set up multiindex for comparing measures across filtered and unfiltered data
-measures = ['kurtosis', 'good_peaks', 'bpm_mean', 'bpm_sdev']
+measures = ['kurtosis', 'good_peaks', 'bpm_mean', 'bpm_sdev', 'snr']
 cols = ['']
 index = pd.MultiIndex.from_product([subjects, tasks, runs])
 columns = pd.MultiIndex.from_product([measures, cols])
@@ -44,18 +44,19 @@ ktdf = pd.DataFrame(index=index, columns=columns)
 
 # loop through filtered physio data and compute relevant outcomes
 for file in files:
-    filename = file.entities[filename]
-    subject = file.entities[subject]
-    task = file.entities[task]
+    filename = file.filename
+    subject = file.entities['subject']
+    task = file.entities['task']
     fs = file.get_metadata()['SamplingFrequency']
     try:
-        run = file.entities[run]
+        run = file.entities['run']
     except:
         run = 1
     df = pd.read_table(file, index_col=0)
     temp = df.filter(regex='cardiac.*', axis=1).kurtosis()
     for col in temp.keys():
         ktdf.loc[(subject, task, run), ('kurtosis', col)] = temp[col]
+        ktdf.loc[(subject, task, run), ('snr', col)] = np.var(np.abs(df[col])) / np.var(df[col])
         try:
             working_data, measures = hp.process(df[col], fs)
             ktdf.at[(subject, task, run), ('good_peaks', col)] = np.mean(working_data['binary_peaklist'])
@@ -90,16 +91,21 @@ ktjson = {
     'Sources': filenames,
     }
 
+cardiac_cols = list(ktdf.columns.get_level_values(1).unique())
+
 # plots and comparisons
-good_peak_long = ktdf.melt(value_vars=[('good_peaks', 'cardiac'), ('good_peaks', 'cardiac_filtered')],
+good_peak_long = ktdf['good_peaks'].melt(value_vars=cardiac_cols,
                            value_name='good peaks', 
-                           var_name=[' ', 'data'])
-bpm_long = ktdf.melt(value_vars=[('bpm_mean', 'cardiac'), ('bpm_mean', 'cardiac_filtered')], 
+                           var_name='data')
+bpm_long = ktdf['bpm_mean'].melt(value_vars=cardiac_cols, 
                      value_name='bpm', 
-                     var_name=[' ', 'data'])
-kurt_long = ktdf.melt(value_vars=[('kurtosis', 'cardiac'), ('kurtosis', 'cardiac_filtered')], 
+                     var_name='data')
+kurt_long = ktdf['kurtosis'].melt(value_vars=cardiac_cols, 
                      value_name='kurtosis', 
-                     var_name=[' ', 'data'])
+                     var_name='data')
+snr_long = ktdf['snr'].melt(value_vars=cardiac_cols, 
+                     value_name='snr', 
+                     var_name='data')
 
 fig,ax = plt.subplots(figsize=(10,7))
 ax.set_xlim(good_peak_long['good peaks'].min(), good_peak_long['good peaks'].max() * 1.1)
@@ -127,3 +133,14 @@ g = sns.kdeplot(x='kurtosis',
                 bw_adjust=0.5,
                 palette='cubehelix')
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'kurtosis.png'), dpi=400, bbox_inches='tight')
+
+fig,ax = plt.subplots(figsize=(10,7))
+ax.set_xlim(left=snr_long['snr'].min(), right=100)
+g = sns.kdeplot(x='snr', 
+                data=snr_long, 
+                hue='data', 
+                fill=True, 
+                alpha=0.5,
+                bw_adjust=0.5,
+                palette='cubehelix')
+fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'snr.png'), dpi=400, bbox_inches='tight')
