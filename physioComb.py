@@ -248,6 +248,7 @@ for file in physio_jsons:
             'Description': 'raw and filtered electrophysiological measures (i.e., cardiac and skin conductance).',
             'Sources': [file, bold_json],
             'RawSources': data_file,
+            'SamplingFrequency': fs,
             'Columns': list(dat.columns),
             'Note': f'''Infinite Impulse Response comb notch filters were applied to raw data to generate `_filtered` data, 
                         with the following notch frequencies: {notches}'''
