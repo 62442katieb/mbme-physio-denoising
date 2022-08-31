@@ -145,19 +145,14 @@ for file in physio_jsons:
             else:
                 basename = f'sub-{subj}_ses-{sesh}_task-{task}_'
         else:
-            if run:
-                out_path = os.path.join(deriv_dir, 
+            out_path = os.path.join(deriv_dir, 
                                     f'sub-{subj}', 
                                     'func')
-                if not os.path.exists(out_path):    
-                    os.makedirs(out_path)
+            if not os.path.exists(out_path):    
+                os.makedirs(out_path)
+            if run:
                 basename =  f'sub-{subj}_task-{task}_run-{run}_'
             else:
-                out_path = os.path.join(deriv_dir, 
-                                        f'sub-{subj}', 
-                                        'func')
-                if not os.path.exists(out_path):
-                    os.makedirs(out_path)
                 basename =  f'sub-{subj}_task-{task}_'
         
         sources = [path]
