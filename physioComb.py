@@ -11,9 +11,9 @@ import pandas as pd
 #import numpy as np
 
 #import heartpy as hp
-from systole.plots import plot_raw
-from systole.detection import interpolate_clipping, ecg_peaks
-from systole.utils import heart_rate
+#from systole.plots import plot_raw
+#from systole.detection import interpolate_clipping, ecg_peaks
+#from systole.utils import heart_rate
 
 #import scipy.signal as signal
 #import numpy as np
@@ -36,6 +36,10 @@ parser.add_argument('--slices',
                     ''')
 parser.add_argument('--mb', type=int, default=1,
                     help='Multiband factor of fMRI scan sequence (if single band, --mb=1).')
+parser.add_argument('--tr', type=float, default=None,
+                    help='Repetition time of fMRI scan sequence.')
+parser.add_argument('--multiecho', type=bool, default=None,
+                    help='Does the fMRI scan sequence collect multiple echoes.')
 parser.add_argument('--biopac', action='store_true',
                     help='Run only BIOPAC-recommended filtering at single-band slice collection frequency.')
 parser.add_argument('--progress', action='store_true',
@@ -59,11 +63,20 @@ dataset_description = {
     "DatasetType": "derivative",
     "GeneratedBy": [
         {
-            "Name": "physio_comb",
+            "Name": "PhysioComb",
             "Version": "0.2.0"
         }
     ],
 }
+
+if args.multiecho:
+    me = args.multiecho
+if args.tr:
+    tr = args.tr
+if args.slices:
+    slices = args.slices
+if args.mb:
+    mb = args.mb
 
 CANDIDATES = ['cardiac', 'ecg', 'ekg', # are there any ecg signals? note: doesn't distinguish between ppg and ecg
               'electrodermal', 'electrodermal activity', 'eda', 'scr']
@@ -106,7 +119,7 @@ for file in physio_jsons:
         # save entities as variables to pull associated BOLD meta-data
         task = file.entities['task']
         subj = file.entities['subject']
-        dtype = file.entities['datatype']
+        #dtype = file.entities['datatype']
 
         if 'session' in file.entities.keys():
             sesh = file.entities['session']
@@ -116,20 +129,8 @@ for file in physio_jsons:
             run = file.entities['run']
         else:
             run = None
-        
-        bold_json = dset.get(task=task, 
-                                subject=subj, 
-                                session=sesh,
-                                datatype=dtype, 
-                                run=run, 
-                                suffix='bold',
-                                extension='json')
-        assert len(bold_json) == 1, f"Looking for one associated BOLD file, found {len(bold_json)}."
-        bold_json = bold_json[0]
                                
         physio_dict = file.get_dict()
-        
-        bold_dict = bold_json.get_dict()
 
         out_path = os.path.join(deriv_dir, 
                                 f'sub-{subj}')
@@ -144,46 +145,67 @@ for file in physio_jsons:
             else:
                 basename = f'sub-{subj}_ses-{sesh}_task-{task}_'
         else:
-            pass
-        if run:
-            out_path = os.path.join(deriv_dir, 
-                                f'sub-{subj}', 
-                                'func')
-            if not os.path.exists(out_path):    
-                os.makedirs(out_path)
-            basename =  f'sub-{subj}_task-{task}_run-{run}_'
-        else:
-            out_path = os.path.join(deriv_dir, 
+            if run:
+                out_path = os.path.join(deriv_dir, 
                                     f'sub-{subj}', 
                                     'func')
-            if not os.path.exists(out_path):
-                os.makedirs(out_path)
-            basename =  f'sub-{subj}_task-{task}_'
+                if not os.path.exists(out_path):    
+                    os.makedirs(out_path)
+                basename =  f'sub-{subj}_task-{task}_run-{run}_'
+            else:
+                out_path = os.path.join(deriv_dir, 
+                                        f'sub-{subj}', 
+                                        'func')
+                if not os.path.exists(out_path):
+                    os.makedirs(out_path)
+                basename =  f'sub-{subj}_task-{task}_'
         
+        sources = [path]
         
         notches = {}
         # params needed for physio denoising
-        tr = bold_dict['RepetitionTime']
-        if len(bold_dict['SliceTiming']) < 1:
-            if args.slices is None:
-                raise ValueError("SliceTiming not found in BOLD sidecar, please provide using --slices")
+        if tr is not None and slices is not None and mb is not None and me is not None:
+            if me:
+                notches['tr'] = 1 / tr
+                tr_filter = True
+            
         else:
-            slices = len(bold_dict['SliceTiming'])
-        if args.biopac == True: # ignore data's mb factor and filter like biopac
-            mb = 1
-        elif 'MultibandAccelerationFactor' in bold_dict.keys():
-            mb = bold_dict['MultibandAccelerationFactor']
-        elif args.mb:
-            mb = args.mb
-        else: # mb factor not specified, assume single band
-            mb = 1
-        if args.biopac: # ignore possibility of multiple echoes and filter like biopac
-            tr_filter = False
-        elif 'echo' in bold_json.entities.keys():
-            notches['tr'] = 1 / tr
+            bold_json = dset.get(task=task, 
+                                    subject=subj, 
+                                    session=sesh,
+                                    #datatype=dtype, 
+                                    run=run, 
+                                    suffix='bold',
+                                    extension='json')
+            assert len(bold_json) == 1, f"Looking for one associated BOLD file, found {len(bold_json)}.\nEither specify --slices, --tr, --mb, --multiecho or verify that associated BOLD json sidecar exists."
+            bold_json = bold_json[0]
+            bold_dict = bold_json.get_dict()
+            sources.append(bold_json.path)
+
+            tr = bold_dict['RepetitionTime']
+            if len(bold_dict['SliceTiming']) < 1:
+                if args.slices is None:
+                    raise ValueError("SliceTiming not found in BOLD sidecar, please provide using --slices")
+            else:
+                slices = len(bold_dict['SliceTiming'])
+            if args.biopac == True: # ignore data's mb factor and filter like biopac
+                mb = 1
+            elif 'MultibandAccelerationFactor' in bold_dict.keys():
+                mb = bold_dict['MultibandAccelerationFactor']
+            elif args.mb:
+                mb = args.mb
+            else: # mb factor not specified, assume single band
+                mb = 1
+            if args.biopac: # ignore possibility of multiple echoes and filter like biopac
+                tr_filter = False
+            elif 'echo' in bold_json.entities.keys():
+                notches['tr'] = 1 / tr
+                tr_filter = True
+            else:
+                tr_filter = False
+        if args.multicomb:
             tr_filter = True
-        else:
-            tr_filter = False
+            notches['tr'] = 1 / tr
         cutoff = 120
 
         fs = physio_dict['SamplingFrequency']
@@ -226,34 +248,69 @@ for file in physio_jsons:
             plt.clf()
             # let the filtering begin
             #print(notches)
-            filtered = comb_band_stop(notches, dat[column], Q, fs)
-            dat[f'{column}_filtered'] = filtered
-            
-            # fourier transform filtered data
-            fft_ecg, _, freq, flimit = fourier_freq(dat[f'{column}_filtered'], 1/fs, 60)
-            fig = plot_signal_fourier(time=dat['seconds'],
-                        data=dat[f'{column}_filtered'], 
-                        downsample=downsample, 
-                        samples=samples, 
-                        fft=fft_ecg, 
-                        freq=freq, 
-                        lim_fmax=flimit, 
-                        annotate=False,
-                        peaks=None,
-                        slice_peaks=None,
-                        title=f'Filtered {column}', 
-                        save=True)
-            fig.savefig(os.path.join(out_path, f'{basename}desc-filtered{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
-            plt.clf()
+            if args.multicomb:
+                combs = {'biopac': {'slices': slices / tr},
+                         'bottenhorn': {'slices': slices / mb / tr, 
+                                        'tr': 1 / tr}}
+                for comb in combs.keys():
+                    notches = combs[comb]
+                    filtered = comb_band_stop(notches, dat[column], Q, fs)
+                    dat[f'{column}_{comb}-filtered'] = filtered
+                
+                    # fourier transform filtered data
+                    fft_ecg, _, freq, flimit = fourier_freq(dat[f'{column}_{comb}-filtered'], 1/fs, 60)
+                    fig = plot_signal_fourier(time=dat['seconds'],
+                                data=dat[f'{column}_{comb}-filtered'], 
+                                downsample=downsample, 
+                                samples=samples, 
+                                fft=fft_ecg, 
+                                freq=freq, 
+                                lim_fmax=flimit, 
+                                annotate=False,
+                                peaks=None,
+                                slice_peaks=None,
+                                title=f'Filtered {column}', 
+                                save=True)
+                    fig.savefig(os.path.join(out_path, f'{basename}desc-{comb}Filtered{column.capitalize()}_physio.png'), 
+                                dpi=400, 
+                                bbox_inches='tight')
+                    plt.clf()
+            else:
+                filtered = comb_band_stop(notches, dat[column], Q, fs)
+                dat[f'{column}_filtered'] = filtered
+                
+                # fourier transform filtered data
+                fft_ecg, _, freq, flimit = fourier_freq(dat[f'{column}_filtered'], 1/fs, 60)
+                fig = plot_signal_fourier(time=dat['seconds'],
+                            data=dat[f'{column}_filtered'], 
+                            downsample=downsample, 
+                            samples=samples, 
+                            fft=fft_ecg, 
+                            freq=freq, 
+                            lim_fmax=flimit, 
+                            annotate=False,
+                            peaks=None,
+                            slice_peaks=None,
+                            title=f'Filtered {column}', 
+                            save=True)
+                fig.savefig(os.path.join(out_path, f'{basename}desc-filtered{column.capitalize()}_physio.png'), dpi=400, bbox_inches='tight')
+                plt.clf()
+        
         out_json = {
             'Description': 'raw and filtered electrophysiological measures (i.e., cardiac and skin conductance).',
-            'Sources': [path, bold_json.path],
+            'Sources': sources,
             'RawSources': data_file,
             'SamplingFrequency': fs,
             'Columns': list(dat.columns),
-            'Note': f'''Infinite Impulse Response comb notch filters were applied to raw data to generate `_filtered` data, 
-                        with the following notch frequencies: {notches}. Slices {slices} / MB factor {mb} / TR {tr}'''
         }
+
+        if args.multicomb:
+            out_json['Note'] = f'''Infinite Impulse Response comb notch filters were applied to raw data to generate `_filtered` data, 
+                        with the following notch frequencies: {combs}. Slices {slices} / MB factor {mb} / TR {tr}; 1 / TR {tr}'''
+        else:
+            out_json['Note'] = f'''Infinite Impulse Response comb notch filters were applied to raw data to generate `_filtered` data, 
+                        with the following notch frequencies: {notches}. Slices {slices} / MB factor {mb} / TR {tr}'''
+
         out_json_path = os.path.join(out_path, f'{basename}desc-filtered_physio.json')
         with open(out_json_path, 'w') as fp:
             json.dump(out_json, fp)
