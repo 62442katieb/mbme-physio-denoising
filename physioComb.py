@@ -44,7 +44,7 @@ parser.add_argument('--biopac', action='store_true',
                     help='Run only BIOPAC-recommended filtering at single-band slice collection frequency.')
 parser.add_argument('--progress', action='store_true',
                     help='Display progress bar (note: requires enligten).')
-parser.add_argument('--multicomb', action='store_true',
+parser.add_argument('--multicomb', type=bool, default=None,
                     help='Run multiple comb notch filtering strategies and save all outputs.')
 parser.add_argument('--verbose', action='store_true', 
                     help='Print information as the cleaning script runs.')
@@ -71,12 +71,20 @@ dataset_description = {
 
 if args.multiecho:
     me = args.multiecho
+else:
+    me = False
 if args.tr:
     tr = args.tr
+else:
+    tr = None
 if args.slices:
     slices = args.slices
+else:
+    slices = None
 if args.mb:
     mb = args.mb
+else:
+    mb = 1
 
 CANDIDATES = ['cardiac', 'ecg', 'ekg', # are there any ecg signals? note: doesn't distinguish between ppg and ecg
               'electrodermal', 'electrodermal activity', 'eda', 'scr']
@@ -159,7 +167,7 @@ for file in physio_jsons:
         
         notches = {}
         # params needed for physio denoising
-        if tr is not None and slices is not None and mb is not None and me is not None:
+        if tr is not None and slices is not None:
             if me:
                 notches['tr'] = 1 / tr
                 tr_filter = True
@@ -207,7 +215,7 @@ for file in physio_jsons:
 
         # I think all the functions calc nyquist themselves
         # nyquist = fs / 2
-        Q = 10
+        Q = 100
 
         # this is going to have to approzimate the comb 
         # so that fs is divisible by f0 ( = slices / mb / tr)
