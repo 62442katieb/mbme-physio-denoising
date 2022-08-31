@@ -1,5 +1,5 @@
 #import os
-import bioread as br
+#import bioread as br
 import scipy.signal as signal
 import numpy as np
 import pandas as pd
