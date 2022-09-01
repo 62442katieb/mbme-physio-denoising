@@ -17,6 +17,8 @@ sns.set_context('talk')
 parser = argparse.ArgumentParser(description='Accept BIDS directory, specify # slices if slice timing isn\' specified in BOLD sidecar.')
 parser.add_argument('dset', type=str,
                     help='Valid BIDS dataset containing physiological data with PhysioComb derivatives (i.e., run physioComb.py first).')
+parser.add_argument('--verbose', action='store_true', 
+                    help='Print filename as the script runs.')
 args = parser.parse_args()
 bids_dir = args.dset
 
@@ -49,7 +51,8 @@ ktdf = pd.DataFrame(index=index, columns=columns)
 # loop through filtered physio data and compute relevant outcomes
 for file in files:
     filename = file.filename
-    print(filename)
+    if args.verbose:
+        print(filename)
     subject = file.entities['subject']
     task = file.entities['task']
     fs = file.get_metadata()['SamplingFrequency']
