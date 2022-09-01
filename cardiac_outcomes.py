@@ -3,7 +3,7 @@ import argparse
 
 import numpy as np
 import pandas as pd
-import heartpy as hp
+import neurokit2 as nk
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -36,7 +36,7 @@ subjects = layout.get_subjects()
 sessions = layout.get_session()
 
 # set up multiindex for comparing measures across filtered and unfiltered data
-measures = ['kurtosis', 'good_peaks', 'bpm_mean', 'bpm_sdev', 'snr']
+measures = ['kurtosis', 'zhao_quality', 'bpm_mean', 'bpm_sdev', 'snr']
 cols = ['']
 if len(sessions) > 1:
     index = pd.MultiIndex.from_product([subjects, sessions, tasks, runs])
@@ -67,13 +67,20 @@ for file in files:
         ktdf.loc[(subject, session, task, run), ('kurtosis', col)] = temp[col]
         ktdf.loc[(subject, session, task, run), ('snr', col)] = np.var(np.abs(df[col])) / np.var(df[col])
         try:
-            working_data, measures = hp.process(df[col], fs)
-            ktdf.at[(subject, session, task, run), ('good_peaks', col)] = np.mean(working_data['binary_peaklist'])
-            ktdf.at[(subject, session, task, run), ('bpm_mean', col)] = measures['bpm']
-            ktdf.at[(subject, session, task, run), ('bpm_sdev', col)] = working_data['hr'].std()
+            rpeaks, info = nk.ecg_peaks(df[col], sampling_rate=fs)
+            # Compute rate
+            ecg_rate = nk.ecg_rate(rpeaks, sampling_rate=fs, desired_length=len(df[col]))
+            q = nk.ecg_quality(df[col],
+                                sampling_rate=fs,
+                                method="zhao2018",
+                                approach="fuzzy")
+            
+            ktdf.at[(subject, session, task, run), ('zhao_quality', col)] = q
+            ktdf.at[(subject, session, task, run), ('bpm_mean', col)] = np.mean(ecg_rate)
+            ktdf.at[(subject, session, task, run), ('bpm_sdev', col)] = np.std(ecg_rate)
         except Exception as e:
             #print(e)
-            ktdf.at[(subject, session, task, run), ('good_peaks', col)] = np.nan
+            ktdf.at[(subject, session, task, run), ('zhao_quality', col)] = np.nan
             ktdf.at[(subject, session, task, run), ('bpm_mean', col)] = np.nan
             ktdf.at[(subject, session, task, run), ('bpm_sdev', col)] = np.nan
 
@@ -103,8 +110,8 @@ ktjson = {
 cardiac_cols = list(ktdf.columns.get_level_values(1).unique())
 
 # plots and comparisons
-good_peak_long = ktdf['good_peaks'].melt(value_vars=ktdf['good_peaks'].columns,
-                           value_name='good peaks', 
+good_peak_long = ktdf['zhao_quality'].melt(value_vars=ktdf['zhao_quality'].columns,
+                           value_name='quality', 
                            var_name='data')
 bpm_long = ktdf['bpm_mean'].melt(value_vars=ktdf['bpm_mean'].columns, 
                      value_name='bpm', 
@@ -117,15 +124,15 @@ snr_long = ktdf['snr'].melt(value_vars=ktdf['snr'].columns,
                      var_name='data')
 
 fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(good_peak_long['good peaks'].min(), good_peak_long['good peaks'].max() * 1.1)
-sns.kdeplot(x='good peaks', 
+ax.set_xlim(good_peak_long['quality'].min(), good_peak_long['quality'].max() * 1.1)
+sns.countplot(x='quality', 
             data=good_peak_long, 
             hue='data', 
             fill=True, 
             alpha=0.5, 
             bw_adjust=0.5,
             palette='cubehelix')
-fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'good_peaks.png'), dpi=400, bbox_inches='tight')
+fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'zhao_quality.png'), dpi=400, bbox_inches='tight')
 
 fig,ax = plt.subplots(figsize=(10,7))
 ax.set_xlim(left=0, right=600)
