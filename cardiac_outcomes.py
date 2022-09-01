@@ -127,7 +127,6 @@ snr_long = ktdf['snr'].melt(value_vars=ktdf['snr'].columns,
                      var_name='data')
 
 fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(good_peak_long['quality'].min(), good_peak_long['quality'].max() * 1.1)
 sns.countplot(x='quality', 
             data=good_peak_long, 
             hue='data', 
