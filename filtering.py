@@ -40,21 +40,30 @@ def butter_highpass_filter(data, cutoff, fs, order=5):
 
 def comb_band_stop(notches, data, Q, fs):
         nyquist = fs / 2
+        filtered = data.copy()
         for notch in notches:
             f0 = notches[notch]
             w0 = f0 / nyquist
+            max_harmonic = int(nyquist / f0)
             if fs % w0 > 0:
-                # do it the old way
-                filtered = data.copy()
-                max_harmonic = int(nyquist / f0)
+                # do it the old way   
                 for i in np.arange(1, max_harmonic):
                     
                     f0 = notches[notch] * i
                     w0 = f0 / nyquist
-                    b,a = signal.iirnotch(w0, Q, fs=fs)
+                    b,a = signal.iirnotch(
+                        w0, 
+                        Q, 
+                        #fs=fs
+                        )
                     filtered = signal.filtfilt(b, a, filtered)
             else:
-                b,a = signal.iircomb(w0, Q, ftype='notch', fs=fs)
+                b,a = signal.iircomb(
+                    w0, 
+                    Q, 
+                    ftype='notch', 
+                    #fs=fs
+                    )
                 filtered = signal.filtfilt(b, a, data)
         return filtered
 
