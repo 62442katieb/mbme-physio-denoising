@@ -41,7 +41,8 @@ cols = ['']
 if len(sessions) > 1:
     index = pd.MultiIndex.from_product([subjects, sessions, tasks, runs])
 else:
-    index = pd.MultiIndex.from_product([subjects, tasks, runs])
+    sessions = [1]
+    index = pd.MultiIndex.from_product([subjects, sessions, tasks, runs])
 columns = pd.MultiIndex.from_product([measures, cols])
 ktdf = pd.DataFrame(index=index, columns=columns)
 
@@ -56,21 +57,25 @@ for file in files:
         run = file.entities['run']
     except:
         run = 1
+    try: 
+        session = file.entities['session']
+    except:
+        session = 1
     df = pd.read_table(file.path)
     temp = df.filter(regex='cardiac.*', axis=1).kurtosis()
     for col in temp.keys():
-        ktdf.loc[(subject, task, run), ('kurtosis', col)] = temp[col]
-        ktdf.loc[(subject, task, run), ('snr', col)] = np.var(np.abs(df[col])) / np.var(df[col])
+        ktdf.loc[(subject, session, task, run), ('kurtosis', col)] = temp[col]
+        ktdf.loc[(subject, session, task, run), ('snr', col)] = np.var(np.abs(df[col])) / np.var(df[col])
         try:
             working_data, measures = hp.process(df[col], fs)
-            ktdf.at[(subject, task, run), ('good_peaks', col)] = np.mean(working_data['binary_peaklist'])
-            ktdf.at[(subject, task, run), ('bpm_mean', col)] = measures['bpm']
-            ktdf.at[(subject, task, run), ('bpm_sdev', col)] = working_data['hr'].std()
+            ktdf.at[(subject, session, task, run), ('good_peaks', col)] = np.mean(working_data['binary_peaklist'])
+            ktdf.at[(subject, session, task, run), ('bpm_mean', col)] = measures['bpm']
+            ktdf.at[(subject, session, task, run), ('bpm_sdev', col)] = working_data['hr'].std()
         except Exception as e:
             #print(e)
-            ktdf.at[(subject, task, run), ('good_peaks', col)] = np.nan
-            ktdf.at[(subject, task, run), ('bpm_mean', col)] = np.nan
-            ktdf.at[(subject, task, run), ('bpm_sdev', col)] = np.nan
+            ktdf.at[(subject, session, task, run), ('good_peaks', col)] = np.nan
+            ktdf.at[(subject, session, task, run), ('bpm_mean', col)] = np.nan
+            ktdf.at[(subject, session, task, run), ('bpm_sdev', col)] = np.nan
 
 # not all tasks will have all runs, sessions, etc.
 # remove blank col created for purpose of multiindex
