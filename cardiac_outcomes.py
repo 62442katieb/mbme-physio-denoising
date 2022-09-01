@@ -130,7 +130,7 @@ fig,ax = plt.subplots(figsize=(10,7))
 sns.countplot(x='quality', 
             data=good_peak_long, 
             hue='data', 
-            order=['Unacceptable', 'Barely acceptable', 'Excellent quality'],
+            order=['Unacceptable', 'Barely acceptable', 'Excellent'],
             palette='cubehelix')
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'zhao_quality.png'), dpi=400, bbox_inches='tight')
 
