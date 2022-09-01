@@ -130,16 +130,17 @@ fig,ax = plt.subplots(figsize=(10,7))
 sns.countplot(x='quality', 
             data=good_peak_long, 
             hue='data', 
+            order=['Unacceptable', 'Barely acceptable', 'Excellent quality'],
             palette='cubehelix')
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'zhao_quality.png'), dpi=400, bbox_inches='tight')
 
 fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(left=0, right=600)
+ax.set_xlim(left=bpm_long['bpm'].min() * 0.9, right=bpm_long['bpm'].max() * 1.1)
 g = sns.histplot(x='bpm', data=bpm_long, hue='data', fill=True, alpha=0.5, palette='cubehelix')
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'bpm.png'), dpi=400, bbox_inches='tight')
 
 fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(left=kurt_long['kurtosis'].min(), right=100)
+ax.set_xlim(left=kurt_long['kurtosis'].min() * 0.9, right=kurt_long['kurtosis'].max() * 1.1)
 g = sns.kdeplot(x='kurtosis', 
                 data=kurt_long, 
                 hue='data', 
@@ -150,7 +151,7 @@ g = sns.kdeplot(x='kurtosis',
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'kurtosis.png'), dpi=400, bbox_inches='tight')
 
 fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(left=snr_long['snr'].min())
+ax.set_xlim(left=snr_long['snr'].min() * 0.9, right=snr_long['snr'].max() * 1.1)
 g = sns.kdeplot(x='snr', 
                 data=snr_long, 
                 hue='data', 
