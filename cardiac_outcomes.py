@@ -38,13 +38,17 @@ sessions = layout.get_session()
 # set up multiindex for comparing measures across filtered and unfiltered data
 measures = ['kurtosis', 'good_peaks', 'bpm_mean', 'bpm_sdev', 'snr']
 cols = ['']
-index = pd.MultiIndex.from_product([subjects, tasks, runs])
+if len(sessions) > 1:
+    index = pd.MultiIndex.from_product([subjects, sessions, tasks, runs])
+else:
+    index = pd.MultiIndex.from_product([subjects, tasks, runs])
 columns = pd.MultiIndex.from_product([measures, cols])
 ktdf = pd.DataFrame(index=index, columns=columns)
 
 # loop through filtered physio data and compute relevant outcomes
 for file in files:
     filename = file.filename
+    print(filename)
     subject = file.entities['subject']
     task = file.entities['task']
     fs = file.get_metadata()['SamplingFrequency']
@@ -52,7 +56,7 @@ for file in files:
         run = file.entities['run']
     except:
         run = 1
-    df = pd.read_table(file, index_col=0)
+    df = pd.read_table(file.path)
     temp = df.filter(regex='cardiac.*', axis=1).kurtosis()
     for col in temp.keys():
         ktdf.loc[(subject, task, run), ('kurtosis', col)] = temp[col]
@@ -94,7 +98,7 @@ ktjson = {
 cardiac_cols = list(ktdf.columns.get_level_values(1).unique())
 
 # plots and comparisons
-good_peak_long = ktdf['good_peaks'].melt(value_vars=cardiac_cols,
+good_peak_long = ktdf['good_peaks'].melt(value_vars=ktdf['good_peaks'].columns,
                            value_name='good peaks', 
                            var_name='data')
 bpm_long = ktdf['bpm_mean'].melt(value_vars=cardiac_cols, 
@@ -135,7 +139,7 @@ g = sns.kdeplot(x='kurtosis',
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'kurtosis.png'), dpi=400, bbox_inches='tight')
 
 fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(left=snr_long['snr'].min(), right=100)
+ax.set_xlim(left=snr_long['snr'].min())
 g = sns.kdeplot(x='snr', 
                 data=snr_long, 
                 hue='data', 
