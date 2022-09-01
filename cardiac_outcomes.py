@@ -101,13 +101,13 @@ cardiac_cols = list(ktdf.columns.get_level_values(1).unique())
 good_peak_long = ktdf['good_peaks'].melt(value_vars=ktdf['good_peaks'].columns,
                            value_name='good peaks', 
                            var_name='data')
-bpm_long = ktdf['bpm_mean'].melt(value_vars=cardiac_cols, 
+bpm_long = ktdf['bpm_mean'].melt(value_vars=ktdf['bpm_mean'].columns, 
                      value_name='bpm', 
                      var_name='data')
-kurt_long = ktdf['kurtosis'].melt(value_vars=cardiac_cols, 
+kurt_long = ktdf['kurtosis'].melt(value_vars=ktdf['kurtosis'].columns, 
                      value_name='kurtosis', 
                      var_name='data')
-snr_long = ktdf['snr'].melt(value_vars=cardiac_cols, 
+snr_long = ktdf['snr'].melt(value_vars=ktdf['snr'].columns, 
                      value_name='snr', 
                      var_name='data')
 
