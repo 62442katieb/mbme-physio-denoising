@@ -16,17 +16,6 @@ sns.set_palette(pal)
 def consecutive(data, stepsize=0.000501):
     return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
 
-#def comb_band_stop(notches, filtered, Q, fs):
-#    for notch in notches:
-#        print('Cleaning', notch, '@', notches[notch])
-#        for i in np.arange(1, (nyquist / notches[notch])):
-#            #print(notches[notch] * i)
-#            f0 = notches[notch] * i
-#            w0 = f0/nyquist
-#            b,a = signal.iirnotch(w0, Q)
-#            filtered = signal.filtfilt(b, a, filtered)
-#    return filtered
-
 def butter_highpass(cutoff, fs, order=5):
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
@@ -48,7 +37,6 @@ def comb_band_stop(notches, data, Q, fs):
             if fs % w0 > 0:
                 # do it the old way   
                 for i in np.arange(1, max_harmonic):
-                    
                     f0 = notches[notch] * i
                     w0 = f0 / nyquist
                     b,a = signal.iirnotch(
