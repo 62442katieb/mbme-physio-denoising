@@ -6,7 +6,7 @@ import pandas as pd
 import neurokit2 as nk
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+from scipy.signal import welch
 from os.path import join, exists
 #from scipy.stats import kurtosis, wilcoxon, ttest_rel
 sns.set_context('talk')
@@ -38,7 +38,7 @@ subjects = layout.get_subjects()
 sessions = layout.get_session()
 
 # set up multiindex for comparing measures across filtered and unfiltered data
-measures = ['kurtosis', 'zhao_quality', 'bpm_mean', 'bpm_sdev', 'snr']
+measures = ['kurtosis', 'zhao_quality', 'bpm_mean', 'bpm_sdev', 'snr', 'noise']
 cols = ['']
 if len(sessions) > 1:
     index = pd.MultiIndex.from_product([subjects, sessions, tasks, runs])
@@ -86,6 +86,13 @@ for file in files:
             ktdf.at[(subject, session, task, run), ('zhao_quality', col)] = np.nan
             ktdf.at[(subject, session, task, run), ('bpm_mean', col)] = np.nan
             ktdf.at[(subject, session, task, run), ('bpm_sdev', col)] = np.nan
+    # and now do EDA
+    temp = df.filter(regex='scr.*', axis=1).kurtosis()
+    for col in temp.keys():
+        # compute noise power
+        f, Pxx = welch(df[col], fs, nperseg=8192)
+        noise_pct = np.trapz(Pxx[f > 0.4], f[f > 0.4]) / (np.trapz(Pxx, f))
+        ktdf.loc[(subject, session, task, run), ('noise', col)] = noise_pct
 
 # not all tasks will have all runs, sessions, etc.
 # remove blank col created for purpose of multiindex
@@ -126,12 +133,28 @@ snr_long = ktdf['snr'].melt(value_vars=ktdf['snr'].columns,
                      value_name='snr', 
                      var_name='data')
 
+noise_long = ktdf['noise'].melt(value_vars=ktdf['noise'].columns, 
+                     value_name='noise', 
+                     var_name='data')
+
+
+# Use this to position the legend for this plot
+loc = {'Unnacceptable': 'upper left',
+       'Barely acceptable': 'upper center',
+       'Excellent': 'upper right'}
+# Find quality level with least # of runs
+x = {}
+for qual in ['Unnacceptable', 'Barely acceptable', 'Excellent']:
+    x[qual] = len(good_peak_long[good_peak_long['quality'] == qual].index)
+least = list(dict(sorted(x.items(), key=lambda item: item[1])).keys())[0]
+
 fig,ax = plt.subplots(figsize=(10,7))
 sns.countplot(x='quality', 
             data=good_peak_long, 
             hue='data', 
-            order=['Unacceptable', 'Barely acceptable', 'Excellent'],
+            order=['Unnacceptable', 'Barely acceptable', 'Excellent'],
             palette='cubehelix')
+ax.legend(loc=loc[least])
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'zhao_quality.png'), dpi=400, bbox_inches='tight')
 
 fig,ax = plt.subplots(figsize=(10,7))
@@ -160,3 +183,14 @@ g = sns.kdeplot(x='snr',
                 bw_adjust=0.5,
                 palette='cubehelix')
 fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'snr.png'), dpi=400, bbox_inches='tight')
+
+fig,ax = plt.subplots(figsize=(10,7))
+ax.set_xlim(0,1)
+g = sns.kdeplot(x='noise', 
+                data=noise_long, 
+                hue='data', 
+                fill=True, 
+                alpha=0.5,
+                bw_adjust=0.5,
+                palette='cubehelix')
+fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'noise.png'), dpi=400, bbox_inches='tight')
