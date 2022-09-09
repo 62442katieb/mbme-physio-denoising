@@ -25,7 +25,7 @@ for subject in subjects:
                             'derivatives', 
                             'PhysioComb', 
                             f'sub-{subject}', 
-                            f'ses-{session}', 
+                            f'ses-{session}', 'func',
                             f'sub-{subject}_ses-{session}_desc-noMR_physio.tsv')
             if exists(biopac):
                 dat = br.read_file(biopac)
@@ -46,7 +46,7 @@ for subject in subjects:
                                     samples=12000,
                                     fft=fft_ecg_bt,
                                     freq=freq,
-                                    lim_fmax=60,
+                                    lim_fmax=limit,
                                     annotate=False,
                                     peaks=None,
                                     slice_peaks=None,

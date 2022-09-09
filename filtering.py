@@ -27,33 +27,25 @@ def butter_highpass_filter(data, cutoff, fs, order=5):
     y = signal.filtfilt(b, a, data)
     return y
 
-def comb_band_stop(notches, data, Q, fs):
-        nyquist = fs / 2
-        filtered = data.copy()
-        for notch in notches:
-            f0 = notches[notch]
-            w0 = f0 / nyquist
-            max_harmonic = int(nyquist / f0)
-            if fs % w0 > 0:
-                # do it the old way   
-                for i in np.arange(1, max_harmonic):
-                    f0 = notches[notch] * i
-                    w0 = f0 / nyquist
-                    b,a = signal.iirnotch(
-                        w0, 
-                        Q, 
-                        #fs=fs
-                        )
-                    filtered = signal.filtfilt(b, a, filtered)
-            else:
-                b,a = signal.iircomb(
-                    w0, 
-                    Q, 
-                    ftype='notch', 
-                    #fs=fs
-                    )
-                filtered = signal.filtfilt(b, a, data)
-        return filtered
+def comb_band_stop(notch, filtered, Q, fs):
+    nyquist = fs / 2
+    max_harmonic = int(nyquist/notch)
+    #min_harmonic = 1
+    for i in np.arange(1, max_harmonic):
+        #print(notch * i)
+        f0 = notch * i
+        w0 = f0/nyquist
+        b,a = signal.iirnotch(w0, Q)
+        filtered = signal.filtfilt(b, a, filtered)
+    j = 1
+    while (notch / j) > 1:
+        #print(notch * i)
+        f0 = notch / i
+        w0 = f0/nyquist
+        b,a = signal.iirnotch(w0, Q)
+        filtered = signal.filtfilt(b, a, filtered)
+        j += 1
+    return filtered
 
 def fourier_freq(timeseries, d, fmax):
     fft = np.fft.fft(timeseries)
@@ -74,8 +66,8 @@ def plot_signal_fourier(time, data, downsample, samples, fft, freq, lim_fmax,
     limit = int(samples / downsample)
 
     time_domain = pd.DataFrame()
-    time_domain['x'] = time_dec[0: limit]
-    time_domain['y'] = data_dec[0: limit]
+    time_domain['x'] = time_dec[1000: 1000+limit]
+    time_domain['y'] = data_dec[1000: 1000+limit]
     freq_domain = pd.DataFrame()
     freq_domain['x'] = freq[:lim_fmax]
     freq_domain['y'] = fft.real[:lim_fmax]

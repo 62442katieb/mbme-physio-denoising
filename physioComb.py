@@ -89,6 +89,14 @@ else:
 CANDIDATES = ['cardiac', 'ecg', 'ekg', # are there any ecg signals? note: doesn't distinguish between ppg and ecg
               'electrodermal', 'electrodermal activity', 'eda', 'scr']
 
+LIMITS = {'cardiac': 60, 
+          'ecg': 60, 
+          'ekg': 60,
+          'electrodermal': 1, 
+          'electrodermal activity': 1, 
+          'eda': 1, 
+          'scr': 1}
+
 if len(dset.description["DatasetDOI"]) > 0:
     dataset_description["SourceDatasets"] = [
             {
@@ -168,10 +176,7 @@ for file in physio_jsons:
         notches = {}
         # params needed for physio denoising
         if tr is not None and slices is not None:
-            if me:
-                notches['tr'] = 1 / tr
-                tr_filter = True
-            
+            pass
         else:
             bold_json = dset.get(task=task, 
                                     subject=subj, 
@@ -199,23 +204,8 @@ for file in physio_jsons:
                 mb = args.mb
             else: # mb factor not specified, assume single band
                 mb = 1
-            if args.biopac: # ignore possibility of multiple echoes and filter like biopac
-                tr_filter = False
-            elif 'echo' in bold_json.entities.keys():
-                notches['tr'] = 1 / tr
-                tr_filter = True
-            else:
-                tr_filter = False
-        if args.multicomb:
-            tr_filter = True
-            notches['tr'] = 1 / tr
-        cutoff = 120
 
         fs = physio_dict['SamplingFrequency']
-
-        # I think all the functions calc nyquist themselves
-        # nyquist = fs / 2
-        Q = 100
 
         # this is going to have to approzimate the comb 
         # so that fs is divisible by f0 ( = slices / mb / tr)
@@ -230,7 +220,7 @@ for file in physio_jsons:
         
         for column in intersection:
             # compute power spectrum of raw signal
-            fft_ecg, _, freq, flimit = fourier_freq(dat[column], 1/fs, 60)
+            fft_ecg, _, freq, flimit = fourier_freq(dat[column], 1/fs, LIMITS[column])
             # first, plot the raw signal and its power spectrum
             # how many samples in six seconds?
             samples = int(6 * fs)
@@ -255,15 +245,24 @@ for file in physio_jsons:
                 combs = {'biopac': {'slices': slices / tr},
                          'bottenhorn': {'slices': slices / mb / tr, 
                                         'tr': 1 / tr}}
+                if column in ['eda', 'scr', 'electrodermal']:
+                    Qs = {'slices': 10, 'tr': 10}
+                else:
+                    Qs = {'slices': 10, 'tr': 100}
                 for comb in combs.keys():
                     notches = combs[comb]
-                    filtered = comb_band_stop(notches, dat[column], Q, fs)
+                    print(column, notches)
+                    filtered = dat[column]
+                    for notch in notches:
+                        print(notch, notches[notch],'\n',len(filtered))
+                        filtered = comb_band_stop(notches[notch], filtered, Qs[notch], fs)
+                        print(len(filtered))
                     dat[f'{column}_{comb}-filtered'] = filtered
                 
                     # fourier transform filtered data
-                    fft_ecg, _, freq, flimit = fourier_freq(dat[f'{column}_{comb}-filtered'], 1/fs, 60)
+                    fft_ecg, _, freq, flimit = fourier_freq(filtered, 1/fs, 60)
                     fig = plot_signal_fourier(time=dat['seconds'],
-                                data=dat[f'{column}_{comb}-filtered'], 
+                                data=filtered, 
                                 downsample=downsample, 
                                 samples=samples, 
                                 fft=fft_ecg, 
@@ -279,13 +278,16 @@ for file in physio_jsons:
                                 bbox_inches='tight')
                     plt.clf()
             else:
-                filtered = comb_band_stop(notches, dat[column], Q, fs)
+                Q = 10
+                filtered = dat[column]
+                for notch in notches:
+                        filtered = comb_band_stop(notches[notch], filtered, Q, fs)
                 dat[f'{column}_filtered'] = filtered
                 
                 # fourier transform filtered data
-                fft_ecg, _, freq, flimit = fourier_freq(dat[f'{column}_filtered'], 1/fs, 60)
+                fft_ecg, _, freq, flimit = fourier_freq(filtered, 1/fs, 60)
                 fig = plot_signal_fourier(time=dat['seconds'],
-                            data=dat[f'{column}_filtered'], 
+                            data=filtered, 
                             downsample=downsample, 
                             samples=samples, 
                             fft=fft_ecg, 

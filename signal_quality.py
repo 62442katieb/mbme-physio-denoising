@@ -120,77 +120,100 @@ ktjson = {
 cardiac_cols = list(ktdf.columns.get_level_values(1).unique())
 
 # plots and comparisons
-good_peak_long = ktdf['zhao_quality'].melt(value_vars=ktdf['zhao_quality'].columns,
-                           value_name='quality', 
-                           var_name='data')
-bpm_long = ktdf['bpm_mean'].melt(value_vars=ktdf['bpm_mean'].columns, 
-                     value_name='bpm', 
-                     var_name='data')
-kurt_long = ktdf['kurtosis'].melt(value_vars=ktdf['kurtosis'].columns, 
-                     value_name='kurtosis', 
-                     var_name='data')
-snr_long = ktdf['snr'].melt(value_vars=ktdf['snr'].columns, 
-                     value_name='snr', 
-                     var_name='data')
+try:
+    good_peak_long = ktdf['zhao_quality'].melt(value_vars=ktdf['zhao_quality'].columns,
+                            value_name='quality', 
+                            var_name='data')
+    loc = {'Unnacceptable': 'upper left',
+        'Barely acceptable': 'upper center',
+        'Excellent': 'upper right'}
+    # Find quality level with least # of runs
+    x = {}
+    for qual in ['Unnacceptable', 'Barely acceptable', 'Excellent']:
+        x[qual] = len(good_peak_long[good_peak_long['quality'] == qual].index)
+    least = list(dict(sorted(x.items(), key=lambda item: item[1])).keys())[0]
 
-noise_long = ktdf['noise'].melt(value_vars=ktdf['noise'].columns, 
-                     value_name='noise', 
-                     var_name='data')
+    fig,ax = plt.subplots(figsize=(10,7))
+    sns.countplot(x='quality', 
+                data=good_peak_long, 
+                hue='data', 
+                order=['Unnacceptable', 'Barely acceptable', 'Excellent'],
+                palette='cubehelix')
+    ax.legend(loc=loc[least])
+    fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'zhao_quality.png'), dpi=400, bbox_inches='tight')
+except Exception as e:
+    print(e)
+
+try:
+    bpm_long = ktdf['bpm_mean'].melt(value_vars=ktdf['bpm_mean'].columns, 
+                        value_name='bpm', 
+                        var_name='data')
+
+    fig,ax = plt.subplots(figsize=(10,7))
+    ax.set_xlim(left=bpm_long['bpm'].min() * 0.9, right=bpm_long['bpm'].max() * 1.1)
+    g = sns.histplot(x='bpm', data=bpm_long, hue='data', fill=True, alpha=0.5, palette='cubehelix')
+    fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'bpm.png'), dpi=400, bbox_inches='tight')
+except Exception as e:
+    print(e)
+
+try:
+    kurt_long = ktdf['kurtosis'].melt(value_vars=ktdf['kurtosis'].columns, 
+                        value_name='kurtosis', 
+                        var_name='data')
+
+    fig,ax = plt.subplots(figsize=(10,7))
+    ax.set_xlim(left=kurt_long['kurtosis'].min() * 0.9, right=kurt_long['kurtosis'].max() * 1.1)
+    g = sns.kdeplot(x='kurtosis', 
+                    data=kurt_long, 
+                    hue='data', 
+                    fill=True, 
+                    alpha=0.5,
+                    bw_adjust=0.5,
+                    palette='cubehelix')
+    fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'kurtosis.png'), dpi=400, bbox_inches='tight')
+except Exception as e:
+    print(e)
+
+try:
+    snr_long = ktdf['snr'].melt(value_vars=ktdf['snr'].columns, 
+                        value_name='snr', 
+                        var_name='data')
+
+    fig,ax = plt.subplots(figsize=(10,7))
+    ax.set_xlim(left=snr_long['snr'].min() * 0.9, right=snr_long['snr'].max() * 1.1)
+    g = sns.kdeplot(x='snr', 
+                    data=snr_long, 
+                    hue='data', 
+                    fill=True, 
+                    alpha=0.5,
+                    bw_adjust=0.5,
+                    palette='cubehelix')
+    fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'snr.png'), dpi=400, bbox_inches='tight')
+except Exception as e:
+    print(e)
+
+try:
+    noise_long = ktdf['noise'].melt(value_vars=ktdf['noise'].columns, 
+                        value_name='noise', 
+                        var_name='data')
+    fig,ax = plt.subplots(figsize=(10,7))
+    ax.set_xlim(0,1)
+    g = sns.kdeplot(x='noise', 
+                    data=noise_long, 
+                    hue='data', 
+                    fill=True, 
+                    alpha=0.5,
+                    bw_adjust=0.5,
+                    palette='cubehelix')
+    fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'noise.png'), dpi=400, bbox_inches='tight')
+except Exception as e:
+    print(e)
 
 
 # Use this to position the legend for this plot
-loc = {'Unnacceptable': 'upper left',
-       'Barely acceptable': 'upper center',
-       'Excellent': 'upper right'}
-# Find quality level with least # of runs
-x = {}
-for qual in ['Unnacceptable', 'Barely acceptable', 'Excellent']:
-    x[qual] = len(good_peak_long[good_peak_long['quality'] == qual].index)
-least = list(dict(sorted(x.items(), key=lambda item: item[1])).keys())[0]
 
-fig,ax = plt.subplots(figsize=(10,7))
-sns.countplot(x='quality', 
-            data=good_peak_long, 
-            hue='data', 
-            order=['Unnacceptable', 'Barely acceptable', 'Excellent'],
-            palette='cubehelix')
-ax.legend(loc=loc[least])
-fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'zhao_quality.png'), dpi=400, bbox_inches='tight')
 
-fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(left=bpm_long['bpm'].min() * 0.9, right=bpm_long['bpm'].max() * 1.1)
-g = sns.histplot(x='bpm', data=bpm_long, hue='data', fill=True, alpha=0.5, palette='cubehelix')
-fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'bpm.png'), dpi=400, bbox_inches='tight')
 
-fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(left=kurt_long['kurtosis'].min() * 0.9, right=kurt_long['kurtosis'].max() * 1.1)
-g = sns.kdeplot(x='kurtosis', 
-                data=kurt_long, 
-                hue='data', 
-                fill=True, 
-                alpha=0.5,
-                bw_adjust=0.5,
-                palette='cubehelix')
-fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'kurtosis.png'), dpi=400, bbox_inches='tight')
 
-fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(left=snr_long['snr'].min() * 0.9, right=snr_long['snr'].max() * 1.1)
-g = sns.kdeplot(x='snr', 
-                data=snr_long, 
-                hue='data', 
-                fill=True, 
-                alpha=0.5,
-                bw_adjust=0.5,
-                palette='cubehelix')
-fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'snr.png'), dpi=400, bbox_inches='tight')
 
-fig,ax = plt.subplots(figsize=(10,7))
-ax.set_xlim(0,1)
-g = sns.kdeplot(x='noise', 
-                data=noise_long, 
-                hue='data', 
-                fill=True, 
-                alpha=0.5,
-                bw_adjust=0.5,
-                palette='cubehelix')
-fig.savefig(join(bids_dir, 'derivatives', 'PhysioComb', 'noise.png'), dpi=400, bbox_inches='tight')
+
