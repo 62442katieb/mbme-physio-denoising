@@ -8,5 +8,6 @@ figures/systole_noMR_peaks.svg
 **.DS_Store
 **.png
 **.sbatch
+**.svg
 
 
