@@ -6,9 +6,7 @@
 - [Workflow]()
 - [Outdated](https://github.com/62442katieb/mbme-physio-denoising#Outdated)
 - [Notebooks](https://github.com/62442katieb/mbme-physio-denoising#Notebooks)
-- [Code for Manuscript](https://github.com/62442katieb/mbme-physio-denoising/edit/main/README.md#code-for-manuscript)
-3. [Example workflow]
-
+2. [Code for Manuscript](https://github.com/62442katieb/mbme-physio-denoising/edit/main/README.md#code-for-manuscript)
 
 Collecting physiological data during fMRI experiments can improve fMRI data cleaning and 
 contribute to our understanding of psychophysiological processes; however, these recordings are 
