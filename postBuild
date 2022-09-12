@@ -1,5 +1,8 @@
 mkdir data
 mkdir data/raw
 mkdir data/cleaned
-wget -q -O data/raw/mbse-raw.csv "https://osf.io/atwjy/download"
-wget -q -O data/raw/mbme-raw.csv "https://osf.io/4j52a/download"
+wget -q -O data/raw/sbse-raw.tsv "https://osf.io/ce6nv/download"
+wget -q -O data/raw/mbse-raw2.tsv "https://osf.io/4j52a/download"
+wget -q -O data/raw/mbse-noMR.tsv "https://osf.io/vcqk2/download"
+wget -q -O data/raw/mbme-raw2.tsv.gz "https://osf.io/36r9j/download"
+wget -q -O data/raw/mbme-noMR.csv "https://osf.io/ptfcs/download"
