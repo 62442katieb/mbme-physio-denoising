@@ -3,7 +3,7 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/62442katieb/mbme-physio-denoising/binder-live?filepath=notebooks%2Fdenoising_ecg.ipynb)
 ## Table of Contents
 1. [Directory](https://github.com/62442katieb/mbme-physio-denoising#Directory)
-- [Workflow]()
+- [Workflow](https://github.com/62442katieb/mbme-physio-denoising#Workflow)
 - [Outdated](https://github.com/62442katieb/mbme-physio-denoising#Outdated)
 - [Notebooks](https://github.com/62442katieb/mbme-physio-denoising#Notebooks)
 2. [Code for Manuscript](https://github.com/62442katieb/mbme-physio-denoising/edit/main/README.md#code-for-manuscript)
@@ -18,6 +18,7 @@ artifacts differ with these aspects of pulse sequences, their effects can be mit
 application of digital filters focused on the slice collection and repetition time.
 
 ## Directory
+### Workflow
 The main program in this package is `physioComb.py `, which is a BIDS-friendly command-line Python script that performs digital filtering of MR-related 
 artifacts from eletrophysiological data (i.e., electrocardiogram and electrodermal activity), using IIR notch filters centered at the slice collection frequency and (optionally) TR frequency. NOTE: current BIDS specifications recommend using `cardiac` to name columns in physio containing cardiac data, regardless of recording source (i.e., ECG or PPG) and `physioComb.py` just looks for a `cardiac` column. Proceed with caution and/or discard `cardiac_filtered*` columns if your cardiac data is from a photoplethysmogram.
 ```
