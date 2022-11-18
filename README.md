@@ -114,4 +114,4 @@ and compares ferquency spectra across the filtering strategies using magnitude s
 To perform the analyses detailed in [Bottenhorn et al., (preprint)](https://doi.org/10.1101/2021.04.01.437293), the following workflow was run:
 1. `physioComb.py --multicomb=True` to filter ECG and EDA signals according to BIOPAC recommendations and updated filters
 2. `msc_and_plot.py` to calculates magnitude squared coherence, pairwise, between signals per supported modality (i.e., ECG, EDA)
-3. `signalQuality.py` to calculate signal quality indices across filtering strategies.
+3. `signal_quality.py` to calculate signal quality indices across filtering strategies.
