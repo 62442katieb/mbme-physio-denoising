@@ -8,6 +8,9 @@
 - [Notebooks](https://github.com/62442katieb/mbme-physio-denoising#Notebooks)
 2. [Code for Manuscript](https://github.com/62442katieb/mbme-physio-denoising/edit/main/README.md#code-for-manuscript)
 
+[![DOI](https://zenodo.org/badge/273025481.svg)](https://zenodo.org/badge/latestdoi/273025481)
+
+
 Collecting physiological data during fMRI experiments can improve fMRI data cleaning and 
 contribute to our understanding of psychophysiological processes; however, these recordings are 
 frequently fraught with artifacts from the MRI pulse sequence. Here, we look at manufacturer 
